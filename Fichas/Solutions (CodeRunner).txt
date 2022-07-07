@@ -1,0 +1,249 @@
+1.
+select nr 
+FROM Student 
+ORDER BY nr ASC;
+
+2.
+select code,name 
+FROM Course 
+WHERE (program='AC') 
+ORDER BY code ASC;
+
+3.
+select Prof.name
+FROM Prof, Student
+WHERE (Prof.name == Student.name)
+ORDER BY Prof.name;
+
+4.
+CREATE VIEW EqualNames AS
+select Student.name
+FROM Student, Prof
+WHERE (Student.name == Prof.name);
+
+select Student.name
+FROM Student
+WHERE (Student.name NOT IN EqualNames)
+ORDER BY Student.name ASC;
+
+-----------------  OU  --------------------
+select Student.name from Student, Prof 
+except 
+select Student.name from Student, Prof where Student.name=Prof.name order by Student.name ASC;
+
+5.
+CREATE VIEW EqualNames AS
+select Student.name
+FROM Student, Prof
+WHERE (Student.name == Prof.name);
+
+select Student.name FROM Student
+UNION
+select Prof.name FROM Prof WHERE (Prof.name not in EqualNames) ORDER BY name ASC;
+
+-----------------  OU  --------------------
+
+select Student.name from Student
+UNION
+select Prof.name from Prof
+order by name ASC;
+
+6.
+CREATE VIEW StudentsTS1 AS
+select distinct Exam.student_nr
+FROM Exam
+WHERE (Exam.course_code == 'TS1');
+
+select Student.name
+FROM Student, StudentsTS1
+WHERE (StudentsTS1.student_nr == Student.nr)
+ORDER BY Student.name ASC;
+
+-----------------  OU  --------------------
+
+select distinct Student.name 
+from Student, (select Exam.student_nr from Exam where course_code='TS1') as Tab 
+where Student.nr=Tab.student_nr 
+order by Student.name ASC;
+
+7.
+CREATE VIEW ExamDepartment AS
+select Exam.student_nr, Exam.course_code, Course.department
+FROM Exam, Course
+WHERE (Exam.course_code == Course.code);
+
+CREATE VIEW StudentsIS AS
+select distinct ExamDepartment.student_nr
+FROM ExamDepartment
+WHERE (ExamDepartment.department == 'IS');
+
+select Student.name
+FROM Student, StudentsIS
+WHERE (Student.nr == StudentsIS.student_nr)
+ORDER BY Student.name;
+
+-----------------  OU  --------------------
+
+select distinct Student.name 
+from Student, (select Exam.student_nr from Exam, (select Course.code from Course where Course.program='IS') as Tab1 where Exam.course_code=Tab1.code) as Tab2 
+where Student.nr=Tab2.student_nr 
+order by Student.name ASC;
+
+8.
+CREATE VIEW ExamDepartmentGrade AS
+select Exam.student_nr,Course.department, Exam.course_code, Exam.grade
+FROM Exam, Course
+WHERE (Exam.course_code == Course.code);
+
+CREATE VIEW MaxGrades AS
+select ExamDepartmentGrade.student_nr, ExamDepartmentGrade.department, ExamDepartmentGrade.course_code, max(ExamDepartmentGrade.grade) as grade
+FROM ExamDepartmentGrade
+GROUP BY ExamDepartmentGrade.student_nr, ExamDepartmentGrade.course_code;
+
+CREATE VIEW PassedGrades AS
+select *
+FROM MaxGrades
+WHERE (MaxGrades.grade > 9);
+
+CREATE VIEW PassedCoursesPerStudent AS
+select PassedGrades.student_nr,  PassedGrades.department, count(PassedGrades.course_code) as numPassedCourses
+FROM  PassedGrades
+GROUP BY   PassedGrades.student_nr, PassedGrades.department;
+
+CREATE VIEW PassedStudentsIS AS
+select *
+FROM PassedCoursesPerStudent
+WHERE (PassedCoursesPerStudent.department == 'IS');
+
+CREATE VIEW NumCoursesPerDepartment AS
+select Course.department, count(Course.code) as numCourses
+FROM Course
+GROUP BY Course.department;
+
+CREATE VIEW StudentsPassedIS AS
+select PassedStudentsIS.student_nr
+FROM NumCoursesPerDepartment, PassedStudentsIS
+WHERE (PassedStudentsIS.department == NumCoursesPerDepartment.department AND PassedStudentsIS.numPassedCourses ==  NumCoursesPerDepartment.numCourses);
+
+select Student.name
+FROM Student, StudentsPassedIS
+WHERE (Student.nr == StudentsPassedIS.student_nr)
+ORDER BY Student.name;
+
+-----------------  OU  --------------------
+
+select name 
+from Student 
+where not exists (select * from Course where program='IS' and not exists (select * from Exam where student_nr=nr and course_code=code and grade>=10)) 
+order by 1;
+
+9.
+select max(grade) from Exam;
+
+10.
+select round(avg(grade),2)
+FROM Exam
+WHERE (Exam.course_code == 'BD');
+
+11.
+select count(*) as num_students
+FROM Student;
+
+12.
+select Course.department, count(Course.code) as num_courses
+FROM Course
+GROUP BY Course.department
+ORDER BY Course.department ASC;
+
+13.
+select Exam.student_nr, count(Exam.course_code) as num_exams
+FROM Exam
+GROUP BY Exam.student_nr
+ORDER BY Exam.student_nr;
+
+14.
+CREATE VIEW NumExams AS
+select round(count(*),2) as num_exams
+FROM Exam;
+
+CREATE VIEW NumStudents AS
+select round(count(*),2) as num_students
+FROM Student;
+
+select round((NumExams.num_exams/NumStudents.num_students),2) as avg_num_exams
+FROM NumExams, NumStudents;
+
+15.
+CREATE VIEW TAB1 AS
+select Exam.student_nr, Exam.course_code, max(Exam.grade) as maxGrade
+FROM Exam
+GROUP BY Exam.course_code, Exam.student_nr
+ORDER BY Exam.student_nr;
+
+CREATE VIEW TAB2 AS
+select TAB1.student_nr, round(avg(TAB1.maxGrade),2) as avg_grade
+from TAB1
+WHERE (TAB1.maxGrade >= 9.5)
+GROUP BY TAB1.student_nr
+ORDER BY TAB1.student_nr;
+
+select Student.name, TAB2.avg_grade
+FROM Student, TAB2
+WHERE (Student.nr == TAB2.student_nr)
+ORDER BY Student.name;
+
+16.
+CREATE VIEW TAB1 AS
+select Exam.student_nr, Exam.course_code, max(Exam.grade) as maxGrade
+FROM Exam
+GROUP BY Exam.course_code;
+
+CREATE VIEW TAB2 AS
+select Exam.student_nr, Exam.course_code, Exam.grade
+FROM Exam, TAB1
+WHERE (TAB1.course_code == Exam.course_code AND TAB1.maxGrade == Exam.grade)
+ORDER BY Exam.student_nr;
+
+select TAB2.course_code, Student.name, TAB2.grade as max_grade
+FROM TAB2, Student
+WHERE (TAB2.student_nr == Student.nr)
+ORDER BY TAB2.course_code ASC;
+
+17.
+CREATE VIEW TAB1 AS
+select Course.program, count(Course.code) as num_courses
+FROM Course
+GROUP BY Course.program;
+
+
+CREATE VIEW TAB2 AS
+select Exam.student_nr, Exam.course_code, Course.program, Exam.grade
+FROM Course, Exam
+WHERE (Course.code == Exam.course_code);
+
+CREATE VIEW TAB3 AS
+select * from TAB2
+WHERE (TAB2.grade > 9);
+
+CREATE VIEW TAB4 AS
+select TAB3.student_nr, TAB3.course_code, TAB3.program, max(TAB3.grade) as maxGrade from TAB3
+GROUP BY TAB3.student_nr, TAB3.course_code;
+
+CREATE VIEW TAB5 AS
+SELECT TAB4.student_nr, count(TAB4.course_code) as courses_passed, TAB4.program, round(avg(TAB4.maxGrade),2) as average
+FROM TAB4
+GROUP BY TAB4.student_nr, TAB4.program;
+
+CREATE VIEW TAB6 AS
+select TAB5.student_nr, TAB5.courses_passed, TAB5.program, TAB1.num_courses as courses_needed
+from TAB5, TAB1
+WHERE (TAB5.program == TAB1.program);
+
+CREATE VIEW TAB7 AS
+select TAB6.student_nr, TAB6.program from TAB6
+WHERE (TAB6.courses_passed == TAB6.courses_needed);
+
+select TAB7.program, Student.name
+FROM TAB7, Student
+WHERE (TAB7.student_nr == Student.nr)
+ORDER BY TAB7.program ASC, Student.name;

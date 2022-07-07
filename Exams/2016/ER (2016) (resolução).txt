@@ -1,0 +1,51 @@
+9.
+CREATE VIEW GabrielNum AS
+select Estudante.ID
+FROM Estudante
+WHERE (Estudante.nome like '%Gabriel%');
+
+CREATE VIEW GabrielFriends AS
+select GabrielFriendships.ID1
+FROM GabrielFriendships, GabrielNum
+WHERE (ID2 == GabrielNum.ID)
+UNION
+select GabrielFriendships.ID2
+FROM GabrielFriendships, GabrielNum
+WHERE (GabrielFriendships.ID1 == GabrielNum.ID);
+
+select Estudante.nome
+FROM Estudante, GabrielFriends
+WHERE (Estudante.ID == GabrielFriends.ID1);
+
+10.
+CREATE VIEW StudentsCourse AS
+select Estudante.ID, Curso.nome
+FROM Estudante, Curso
+WHERE (Estudante.curso == Curso.ID);
+
+CREATE VIEW StudentsMIEIC AS
+select Estudante.ID, Curso.nome
+FROM Estudante, Curso
+WHERE (Estudante.curso == Curso.ID AND Curso.nome == 'MIEIC');
+
+select Estudante.nome
+FROM Estudante, StudentsMIEIC
+WHERE (Estudante.ID == StudentsMIEIC.ID AND Estudante.nome LIKE '%a%');
+
+11.
+CREATE VIEW AmizadeEstudantes AS
+select Amizade.ID1, e1.anoCurricular as anoCurricular1, Amizade.ID2, e2.anocurricular as anoCurricular2
+FROM Amizade, Estudante as e1, Estudante as e2
+WHERE (Amizade.ID1 == e1.ID AND Amizade.ID2 == e2.ID)
+ORDER BY Amizade.ID1;
+
+CREATE VIEW FriendsInAllYears AS
+select AmizadeEstudantes.ID1, count(distinct AmizadeEstudantes.anoCurricular2) as numFriendsDiffYears
+FROM AmizadeEstudantes
+GROUP BY AmizadeEstudantes.ID1
+HAVING (numFriendsDiffYears == 5);
+
+select Estudante.nome
+FROM Estudante, FriendsInAllYears
+WHERE (Estudante.ID == FriendsInAllYears.ID1)
+ORDER BY Estudante.nome ASC;
